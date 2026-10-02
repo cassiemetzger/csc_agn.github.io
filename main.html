@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spectral Archive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0e17;
+    --panel: #10172a;
+    --panel-2: #141d34;
+    --line: #26314a;
+    --text: #e9e6dd;
+    --text-dim: #8d94a8;
+    --gold: #c9a24a;
+    --gold-dim: #8a7239;
+    --white-line: #cfd4e0;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: radial-gradient(ellipse at top, #0d1326 0%, #080b14 60%, #06080f 100%);
+    color: var(--text);
+    font-family: 'Work Sans', sans-serif;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  .wrap{
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 64px 24px 100px;
+  }
+  .masthead h1{
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: clamp(2rem, 5vw, 2.9rem);
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+  }
+  .masthead h1 em{ font-style: italic; font-weight: 500; color: var(--gold); }
+  .masthead p{ color: var(--text-dim); font-size: 1.03rem; max-width: 58ch; margin: 0 0 6px; }
+
+  .search-row{ position: relative; margin-top: 26px; }
+  form.search{ display: flex; gap: 10px; }
+  .search input[type="text"]{
+    flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--text);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.92rem; padding: 13px 16px; border-radius: 2px;
+  }
+  .search input::placeholder{ color: #5a6276; }
+  .search input:focus-visible, .search button:focus-visible
+  .dropzone:focus-visible, .suggest-item:focus-visible{ outline: 2px solid var(--gold); outline-offset: 2px; }
+  .search button{
+    background: var(--gold); color: #1a1406; border: none; font-weight: 600; font-size: 0.92rem;
+    padding: 13px 20px; border-radius: 2px; cursor: pointer; font-family: 'Work Sans', sans-serif;
+  }
+  .search button:hover{ background: #d9b35c; }
+
+  .suggestions{
+    position: absolute; top: calc(100% + 4px); left: 0; right: 86px;
+    background: var(--panel-2); border: 1px solid var(--line); max-height: 260px; overflow-y: auto;
+    z-index: 5; display: none;
+  }
+  .suggestions.open{ display: block; }
+  .suggest-item{
+    display: flex; justify-content: space-between; gap: 10px; width: 100%; text-align: left;
+    background: none; border: none; color: var(--text); padding: 9px 14px; cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; border-bottom: 1px solid var(--line);
+  }
+  .suggest-item:last-child{ border-bottom: none; }
+  .suggest-item:hover{ background: #1a2340; }
+  .suggest-item .tag{ color: var(--text-dim); flex-shrink: 0; }
+
+  .count-note{ color: var(--text-dim); font-size: 0.82rem; margin-top: 10px; }
+
+  .panel{ margin-top: 40px; border-top: 1px solid var(--line); padding-top: 34px; }
+  @media (prefers-reduced-motion: no-preference){
+    .panel.enter{ animation: rise 420ms ease-out; }
+    @keyframes rise{ from{ opacity:0; transform: translateY(8px);} to{opacity:1; transform:translateY(0);} }
+  }
+
+  .obj-kind{ color: var(--gold); font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; margin-bottom: 4px; }
+  .obj-name{ font-family: 'Fraunces', serif; font-weight: 500; font-size: 1.8rem; margin: 0 0 20px; }
+
+  .facts{
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px 22px;
+    border: 1px solid var(--line); background: var(--panel); padding: 16px 18px; margin-bottom: 24px;
+  }
+  .fact dt{ color: var(--text-dim); font-size: 0.76rem; margin-bottom: 3px; }
+  .fact dd{ margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 0.92rem; }
+
+  .state-msg{
+    border: 1px solid var(--line); background: var(--panel); padding: 20px; color: var(--text-dim);
+    margin-bottom: 24px; font-size: 0.95rem;
+  }
+  .state-msg b{ color: var(--text); }
+
+  .dropzone{
+    border: 1px dashed var(--line); background: var(--panel); padding: 22px; text-align: center;
+    margin-bottom: 24px; color: var(--text-dim); font-size: 0.9rem; cursor: pointer;
+  }
+  .dropzone.drag{ border-color: var(--gold); color: var(--text); }
+  .dropzone .expect{ font-family: 'IBM Plex Mono', monospace; color: var(--gold); font-size: 0.85rem; display:block; margin-top: 6px; word-break: break-all; }
+  .dropzone input{ display: none; }
+
+  .scope{ border: 1px solid var(--line); background: var(--panel-2); padding: 20px; }
+  .scope-label{ color: var(--text-dim); font-size: 0.78rem; margin-bottom: 10px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+  .legend-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align: middle; }
+  svg{ display:block; width: 100%; height: auto; }
+  .band-wrap{ margin-bottom: 16px; }
+  .ruler text{ fill: var(--text-dim); font-family: 'IBM Plex Mono', monospace; font-size: 10px; }
+  .line-flux{ fill: none; stroke: var(--white-line); stroke-width: 1; opacity: 0.75; }
+  .line-fit{ fill: none; stroke: var(--gold); stroke-width: 1.6; }
+  .line-component{ fill: none; stroke-width: 1.3; opacity: 0.9; }
+  .marker-em{ stroke-width: 1.1; opacity: 0.8; }
+  .marker-label{ font-family: 'IBM Plex Mono', monospace; font-size: 9px; fill: var(--text-dim); }
+
+  .pop-facts{ margin-top: 20px; }
+
+  .spec-controls{
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .spec-controls button{
+    background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; padding: 6px 11px; cursor: pointer; border-radius: 2px;
+  }
+  .spec-controls button:hover{ border-color: var(--gold-dim); color: var(--text); }
+  .spec-controls button.active{ border-color: var(--gold); color: var(--gold); }
+  .spec-controls .spec-range{ color: var(--text-dim); font-size: 0.78rem; margin-left: 4px; }
+
+  .spec-chart-area{ cursor: grab; touch-action: none; user-select: none; }
+  .spec-chart-area.dragging{ cursor: grabbing; }
+
+  .upload-bar{
+    display:flex; align-items:center; gap: 12px; margin-top: 10px; flex-wrap: wrap;
+  }
+  .upload-bar button{
+    background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; padding: 7px 12px; cursor: pointer; border-radius: 2px;
+  }
+  .upload-bar button:hover{ border-color: var(--gold-dim); color: var(--text); }
+
+  .chips{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .chips span.lbl{ color: var(--text-dim); font-size: 0.85rem; padding: 6px 0; }
+  .chip{
+    background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; padding: 6px 12px; border-radius: 2px; cursor: pointer;
+  }
+  .chip:hover{ border-color: var(--gold-dim); color: var(--text); }
+
+  footer{ margin-top: 60px; color: #545c70; font-size: 0.8rem; }
+
+  .table-toggle{ margin-top: 16px; }
+  .table-toggle button{
+    background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; padding: 7px 12px; cursor: pointer; border-radius: 2px;
+  }
+  .table-toggle button:hover{ border-color: var(--gold-dim); color: var(--text); }
+
+  .table-wrap{
+    margin-top: 16px; border: 1px solid var(--line); background: var(--panel);
+    max-height: 420px; overflow-y: auto;
+  }
+  table.src-table{ width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; }
+  table.src-table thead th{
+    position: sticky; top: 0; background: var(--panel-2); color: var(--text-dim); text-align: left;
+    font-weight: 500; padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 0.74rem;
+    text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  table.src-table tbody tr{ cursor: pointer; border-bottom: 1px solid var(--line); }
+  table.src-table tbody tr:hover{ background: #1a2340; }
+  table.src-table td{ padding: 8px 12px; color: var(--text); white-space: nowrap; }
+  table.src-table td.spec-yes{ color: var(--gold); }
+  table.src-table td.spec-no{ color: var(--text-dim); }
+  .table-filter{
+    display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+  }
+  .table-filter input{
+    flex: 1; min-width: 160px; background: var(--panel); border: 1px solid var(--line); color: var(--text);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; padding: 8px 12px; border-radius: 2px;
+  }
+  .table-criteria{ display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+  .table-criteria label{
+    display: flex; align-items: center; gap: 6px; color: var(--text-dim);
+    font-size: 0.82rem; cursor: pointer; font-family: 'IBM Plex Mono', monospace;
+  }
+  .table-criteria label:hover{ color: var(--text); }
+  .table-criteria input[type="checkbox"]{ accent-color: var(--gold); cursor: pointer; }
+
+  .coord-search{ margin-top: 22px; }
+  .coord-form{ display: flex; gap: 8px; flex-wrap: wrap; }
+  .coord-form input{
+    background: var(--panel); border: 1px solid var(--line); color: var(--text);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.88rem; padding: 11px 14px; border-radius: 2px;
+    width: 140px;
+  }
+  .coord-form input::placeholder{ color: #5a6276; }
+  .coord-form button{
+    background: var(--gold); color: #1a1406; border: none; font-weight: 600; font-size: 0.88rem;
+    padding: 11px 18px; border-radius: 2px; cursor: pointer; font-family: 'Work Sans', sans-serif;
+  }
+  .coord-form button:hover{ background: #d9b35c; }
+  .coord-results{ margin-top: 10px; }
+  .coord-result-item{
+    display: flex; justify-content: space-between; gap: 10px; width: 100%; text-align: left;
+    background: var(--panel-2); border: 1px solid var(--line); border-top: none; color: var(--text);
+    padding: 9px 14px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem;
+  }
+  .coord-result-item:first-child{ border-top: 1px solid var(--line); }
+  .coord-result-item:hover{ background: #1a2340; }
+  .coord-result-item .tag{ color: var(--text-dim); flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <h1><em>Chandra Source Catalog:</em> AGN</h1>
+    <p>A panchromatic catalog of AGN identified in the Chandra Source Catalog (CSC).</p>
+    <div class="search-row" id="searchArea" style="display:none">
+      <form class="search" id="searchForm" autocomplete="off">
+        <input type="text" id="searchInput" placeholder="Try a 2CXO name, e.g. 2CXO_J124813.0-031959" autocomplete="off">
+        <button type="submit">Look up</button>
+      </form>
+      <div class="suggestions" id="suggestions"></div>
+    </div>
+    <div class="coord-search" id="coordSearchArea" style="display:none">
+      <p class="count-note" style="margin-top:0">Or search by coordinates</p>
+      <form class="coord-form" id="coordForm" autocomplete="off">
+        <input type="text" id="raInput" placeholder="RA (deg)" autocomplete="off">
+        <input type="text" id="decInput" placeholder="Dec (deg)" autocomplete="off">
+        <input type="text" id="radiusInput" placeholder="Radius (arcsec)" value="5" autocomplete="off">
+        <button type="submit">Search</button>
+      </form>
+      <div class="coord-results" id="coordResults"></div>
+    </div>
+    <div class="table-toggle" id="tableToggleArea" style="display:none">
+      <button type="button" id="toggleTable">Browse all sources</button>
+    </div>
+    <div id="tableHost" style="display:none"></div>
+  </div>
+ 
+  <div id="resultHost"></div>
+ 
+  <footer>[FOOTER]</footer>
+</div>
+<script>
+
+/* ---------- catalog ----------
+   columns: name, ra, dec, z, continuum, best_fit, outflow,
+            stellar_sig, nl_sig, bl_sig, out_sig, nburst_basename */
+let CATALOG = []
+const COL = {NAME:0, RA:1, DEC:2, Z:3, CONTINUUM:4, BEST_FIT:5, OUTFLOW:6,
+             STELLAR_SIG:7, NL_SIG:8, BL_SIG:9, OUT_SIG:10, NBURST:11};
+
+const loadedSpectra = new Map(); // basename -> parsed object
+
+/* Edit this to point at your output.txt (fetch resolves "/..." against the
+   current document's origin, so for a file opened as file://.../page.html,
+   an absolute path like below becomes file:///Users/... automatically). */
+const CATALOG_PATH = "output.txt";
+function readHeader(view, offset){
+  const dec = new TextDecoder('ascii');
+  let pos = offset;
+  const header = {};
+  let ended = false;
+  while (!ended){
+    const block = new Uint8Array(view.buffer, view.byteOffset + pos, 2880);
+    pos += 2880;
+    for (let i = 0; i < 2880; i += 80){
+      const card = dec.decode(block.subarray(i, i + 80));
+      const key = card.slice(0, 8).trim();
+      if (key === 'END'){ ended = true; continue; }
+      if (!key || key === 'COMMENT' || key === 'HISTORY') continue;
+      if (card[8] === '='){
+        let val = card.slice(9);
+        const slash = val.indexOf('/');
+        if (slash >= 0) val = val.slice(0, slash);
+        val = val.trim();
+        if (val.startsWith("'")) val = val.replace(/^'/, '').replace(/'$/, '').trim();
+        header[key] = val;
+      }
+    }
+  }
+  return { header, next: pos };
+}
+function parseCatalogText(text){
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+  if (!lines.length) throw new Error('That file looks empty.');
+  const header = lines[0].trim().split(/\s+/);
+  const idx = {};
+  header.forEach((h, i) => { idx[h] = i; });
+  const required = ['name', 'ra', 'dec', 'Rec_Z', 'continuum', 'best_fit', 'outflow',
+                     'stellar_sig', 'nl_sig', 'bl_sig', 'out_sig', 'nburst_file'];
+  const missing = required.filter(r => !(r in idx));
+  if (missing.length) throw new Error('Missing expected column(s): ' + missing.join(', '));
+
+  const fnum = s => { const v = parseFloat(s); return (s === 'nan' || !isFinite(v)) ? null : v; };
+  const rows = [];
+  for (let li = 1; li < lines.length; li++){
+    const parts = lines[li].trim().split(/\s+/);
+    if (parts.length < header.length) continue;
+    const nburstRaw = parts[idx['nburst_file']];
+    const nburstBasename = (nburstRaw === 'None' || !nburstRaw)
+  ? null
+  : 'spec_files/' + nburstRaw.split('/').slice(-2).join('/');
+    rows.push([
+      parts[idx['name']],
+      parseFloat(parts[idx['ra']]),
+      parseFloat(parts[idx['dec']]),
+      parseFloat(parts[idx['Rec_Z']]),
+      parts[idx['continuum']] === 'True',
+      parts[idx['best_fit']],
+      parts[idx['outflow']] === 'True',
+      fnum(parts[idx['stellar_sig']]),
+      fnum(parts[idx['nl_sig']]),
+      fnum(parts[idx['bl_sig']]),
+      fnum(parts[idx['out_sig']]),
+      nburstBasename
+    ]);
+  }
+  if (!rows.length) throw new Error('No data rows found after the header line.');
+  return rows;
+}
+async function autoLoadSpectrum(row) {
+  const path = row[COL.NBURST];
+  if (!path || loadedSpectra.has(path)) return;
+  try {
+    const res = await fetch(path);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const buffer = await res.arrayBuffer();
+    const parsed = parseNburstFITS(buffer);
+    loadedSpectra.set(path, parsed);
+    render(row);
+  } catch (err) {
+    console.error('Could not load', path, err);
+    document.getElementById('resultHost').insertAdjacentHTML('beforeend',
+      `<div class="state-msg">Could not load <code>${path}</code> (${err.message}).</div>`);
+  }
+}
+
+async function loadCatalog(){
+  const status = document.getElementById('catalogStatus');
+ 
+  try {
+    const res = await fetch(CATALOG_PATH);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    CATALOG = parseCatalogText(text);
+    const withFits = CATALOG.filter(r => r[COL.CONTINUUM] && r[COL.NBURST]).length;
+    
+    document.getElementById('searchArea').style.display = '';
+    document.getElementById('coordSearchArea').style.display = '';
+    document.getElementById('tableToggleArea').style.display = '';
+    initSearch();
+    initCoordSearch();
+    initTable();
+    const example = CATALOG.find(r => r[COL.CONTINUUM] && r[COL.NBURST] && r[COL.BEST_FIT] === 'bl') || CATALOG[0];
+    render(example);
+  } catch (err) {
+    status.innerHTML = 'Could not load the catalog from <code>' + CATALOG_PATH + '</code> (' + err.message + ').'
+      + ' Browsers block scripts from reading arbitrary local files directly \u2014 this works if the page is'
+      + ' served (e.g. run <code>python3 -m http.server</code> in that folder and open the page through'
+      + ' <code>http://localhost:8000/...</code>) or if opened in a browser with relaxed local-file access.'
+      + ' <button type="button" id="retryCatalog">Retry</button>';
+    const retry = document.getElementById('retryCatalog');
+    if (retry) retry.addEventListener('click', loadCatalog);
+  }
+}
+
+const TFORM_SIZE = { L:1, X:1, B:1, I:2, J:4, K:8, A:1, E:4, D:8 };
+
+function parseColumns(header){
+  const tfields = parseInt(header.TFIELDS || '0', 10);
+  const cols = [];
+  let offset = 0;
+  for (let i = 1; i <= tfields; i++){
+    const name = (header['TTYPE' + i] || '').trim();
+    const tform = (header['TFORM' + i] || '').trim();
+    const m = tform.match(/^(\d*)([A-Z])/);
+    const rep = m && m[1] ? parseInt(m[1], 10) : 1;
+    const code = m ? m[2] : 'A';
+    const size = (TFORM_SIZE[code] || 1) * rep;
+    const tdim = (header['TDIM' + i] || '').replace(/[()]/g, '');
+    cols.push({ name, code, rep, offset, size, tdim });
+    offset += size;
+  }
+  return { cols, rowBytes: offset };
+}
+
+function readField(view, base, col){
+  const byteOffset = view.byteOffset + base + col.offset;
+  if (col.code === 'A'){
+    const dec = new TextDecoder('ascii');
+    const raw = dec.decode(new Uint8Array(view.buffer, byteOffset, col.size));
+    if (col.tdim){
+      const parts = col.tdim.split(',').map(s => parseInt(s.trim(), 10));
+      if (parts.length === 2){
+        const [strLen, count] = parts;
+        const out = [];
+        for (let i = 0; i < count; i++) out.push(raw.slice(i * strLen, (i + 1) * strLen).trim());
+        return out;
+      }
+    }
+    return raw.replace(/\0/g, '').trim();
+  }
+  const out = new Array(col.rep);
+  for (let i = 0; i < col.rep; i++){
+    const off = byteOffset + i * (TFORM_SIZE[col.code] || 1);
+    if (col.code === 'E') out[i] = view.getFloat32(off, false);
+    else if (col.code === 'D') out[i] = view.getFloat64(off, false);
+    else if (col.code === 'I') out[i] = view.getInt16(off, false);
+    else if (col.code === 'J') out[i] = view.getInt32(off, false);
+    else if (col.code === 'K') out[i] = Number(view.getBigInt64(off, false));
+    else if (col.code === 'B') out[i] = view.getUint8(off);
+    else if (col.code === 'L') out[i] = (view.getUint8(off) === 84); // 'T' = 84, 'F' = 70
+    else out[i] = null;
+  }
+  return col.rep === 1 ? out[0] : out;
+}
+
+function getField(cols, view, base, name){
+  const col = cols.find(c => c.name === name);
+  if (!col) return null;
+  return readField(view, base, col);
+}
+
+/* ---------- multiwavelength catalog (imbh_sample_prepared.fits) ----------
+   One row per 2CXO source, cross-matched to PanSTARRS/Legacy Survey/SDSS/
+   DESI/2MASS/WISE/AGN-classification catalogs. Looked up by source name. */
+
+const MULTIWAVE_PATH = "imbh_sample_prepared.fits";
+const MULTIWAVE = new Map(); // name -> curated field object
+
+const MULTIWAVE_FIELDS = [
+  'name', 'significance',
+  'DESI_TARGETID', 'SDSS_SPECOBJID',
+  'plate', 'mjd', 'fiberid',
+  'flux_aper_b', 'flux_aper_h', 'flux_aper_m', 'flux_aper_s',
+  'hard_hm', 'hard_hs', 'hard_ms', 'var_inter_index_b',
+  'PS21P_g', 'PS21P_r', 'PS21P_i', 'PS21P_z',
+  'LEG21P_G', 'LEG21P_R', 'LEG21P_Z',
+  '2MASS21P_j_m', '2MASS21P_h_m', '2MASS21P_k_m',
+  'WISE_w1mpro', 'WISE_w2mpro', 'WISE_w3mpro',
+  'WISE_W1_lum', 'WISE_W2_lum', 'WISE_W3_lum',
+  'SDSS_CLASS', 'SDSS_SUBCLASS', 'SDSS_Z',
+  'DESI_SPECTYPE', 'DESI_Z',
+  'AGNDB_best_class', 'AGNDB_best_Z',
+  'ir_agn', 'optical_agn', 'xray_agn',
+  'f_b_any', 'CSC_b_lum'
+];
+
+function parseMultiwaveFITS(buffer){
+  const view = new DataView(buffer);
+  let pos = 0;
+
+  const primary = readHeader(view, pos);
+  pos = primary.next;
+  const naxis0 = parseInt(primary.header.NAXIS || '0', 10);
+  if (naxis0 > 0){
+    const bitpix = Math.abs(parseInt(primary.header.BITPIX || '8', 10));
+    let n = 1;
+    for (let i = 1; i <= naxis0; i++) n *= parseInt(primary.header['NAXIS' + i] || '1', 10);
+    pos += Math.ceil((bitpix / 8 * n) / 2880) * 2880;
+  }
+
+  const tableHdrRes = readHeader(view, pos);
+  pos = tableHdrRes.next;
+  const tableHeader = tableHdrRes.header;
+  const { cols, rowBytes } = parseColumns(tableHeader);
+  const nrows = parseInt(tableHeader.NAXIS2 || '0', 10);
+  const dataStart = pos;
+
+  const wanted = MULTIWAVE_FIELDS
+    .map(f => [f, cols.find(c => c.name === f)])
+    .filter(([, c]) => c);
+
+  const map = new Map();
+  for (let r = 0; r < nrows; r++){
+    const base = dataStart + r * rowBytes;
+    const obj = {};
+    for (const [fname, col] of wanted) obj[fname] = readField(view, base, col);
+    if (typeof obj.name === 'string' && obj.name) map.set(obj.name, obj);
+  }
+  return map;
+}
+
+async function loadMultiwave(){
+  try {
+    const res = await fetch(MULTIWAVE_PATH);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const buffer = await res.arrayBuffer();
+    const parsed = parseMultiwaveFITS(buffer);
+    parsed.forEach((v, k) => MULTIWAVE.set(k, v));
+    console.log('Multiwavelength catalog loaded:', MULTIWAVE.size, 'sources');
+    if (currentRow) render(currentRow); // re-render current source now that cross-match data is in
+    refreshTableBody(); // fill in AGN flag columns once cross-match data is in
+  } catch (err) {
+    console.error('Could not load multiwavelength catalog from', MULTIWAVE_PATH, err);
+  }
+}
+
+function fmtSci(v, digits){ return isFinite(v) ? v.toExponential(digits == null ? 2 : digits) : null; }
+function fmtMag(v, digits){ return isFinite(v) ? v.toFixed(digits == null ? 2 : digits) : null; }
+
+function renderMultiwavePanel(name){
+  const mw = MULTIWAVE.get(name);
+  if (!mw) return '';
+
+  const xray = [];
+  if (isFinite(mw.significance)) xray.push(['Detection significance', mw.significance.toFixed(1)]);
+  if (isFinite(mw.flux_aper_b)) xray.push(['Broad-band flux (0.5-7 keV)', fmtSci(mw.flux_aper_b) + ' erg/cm\u00b2/s']);
+  if (isFinite(mw.flux_aper_h)) xray.push(['Hard-band flux (2-7 keV)', fmtSci(mw.flux_aper_h) + ' erg/cm\u00b2/s']);
+  if (isFinite(mw.flux_aper_s)) xray.push(['Soft-band flux (0.5-1.2 keV)', fmtSci(mw.flux_aper_s) + ' erg/cm\u00b2/s']);
+  if (isFinite(mw.hard_hm)) xray.push(['Hardness ratio (H-M)', mw.hard_hm.toFixed(2)]);
+  if (isFinite(mw.CSC_b_lum)) xray.push(['X-ray luminosity (broad)', fmtSci(mw.CSC_b_lum) + ' erg/s']);
+
+  const optical = [];
+  if (isFinite(mw.PS21P_g)) optical.push(['PS1 g / r / i / z', [mw.PS21P_g, mw.PS21P_r, mw.PS21P_i, mw.PS21P_z].map(v => fmtMag(v)).join(' / ')]);
+  if (isFinite(mw.LEG21P_G)) optical.push(['Legacy Survey G / R / Z', [mw.LEG21P_G, mw.LEG21P_R, mw.LEG21P_Z].map(v => fmtMag(v)).join(' / ')]);
+  if (mw.SDSS_CLASS) optical.push(['SDSS classification', mw.SDSS_CLASS + (mw.SDSS_SUBCLASS ? ' (' + mw.SDSS_SUBCLASS + ')' : '')]);
+  if (mw.DESI_SPECTYPE) optical.push(['DESI spectral type', mw.DESI_SPECTYPE]);
+
+  const nirIr = [];
+  if (isFinite(mw.WISE_w1mpro)) nirIr.push(['WISE W1 magnitude', fmtMag(mw.WISE_w1mpro)]);
+  if (isFinite(mw.WISE_w2mpro)) nirIr.push(['WISE W2 magnitude', fmtMag(mw.WISE_w2mpro)]);
+  if (isFinite(mw.WISE_w3mpro)) nirIr.push(['WISE W3 magnitude', fmtMag(mw.WISE_w3mpro)]);
+  if (isFinite(mw.WISE_W1_lum)) nirIr.push(['WISE W1 luminosity', fmtSci(mw.WISE_W1_lum) + ' erg/s']);
+  if (isFinite(mw.WISE_W2_lum)) nirIr.push(['WISE W2 luminosity', fmtSci(mw.WISE_W2_lum) + ' erg/s']);
+  if (isFinite(mw.WISE_W3_lum)) nirIr.push(['WISE W3 luminosity', fmtSci(mw.WISE_W3_lum) + ' erg/s']);
+
+
+  const sections = [
+    ['X-ray (Chandra)', xray],
+    ['Optical', optical],
+    ['IR', nirIr]
+  ].filter(([, rows]) => rows.length);
+
+  if (!sections.length) return '';
+
+  return `
+    <div class="scope" style="margin-top:20px">
+      <div class="scope-label"><span>Multiwavelength cross-match</span></div>
+      ${sections.map(([label, rows]) => `
+        <p class="count-note" style="margin-top:14px;margin-bottom:6px;color:var(--gold)">${label}</p>
+        <dl class="facts">${rows.map(([k, v]) => `<div class="fact"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      `).join('')}
+    </div>
+  `;
+}
+
+function parseNburstFITS(arrayBuffer){
+  const view = new DataView(arrayBuffer);
+  let pos = 0;
+
+  const primary = readHeader(view, pos);
+  pos = primary.next;
+  const naxis0 = parseInt(primary.header.NAXIS || '0', 10);
+  if (naxis0 > 0){
+    // (not expected for these files, but skip any primary data defensively)
+    const bitpix = Math.abs(parseInt(primary.header.BITPIX || '8', 10));
+    let n = 1;
+    for (let i = 1; i <= naxis0; i++) n *= parseInt(primary.header['NAXIS' + i] || '1', 10);
+    const nbytes = (bitpix / 8) * n;
+    pos += Math.ceil(nbytes / 2880) * 2880;
+  }
+
+  const specHdrRes = readHeader(view, pos);
+  pos = specHdrRes.next;
+  const specHeader = specHdrRes.header;
+  if ((specHeader.EXTNAME || '').replace(/'/g, '') !== 'SPECTRUM'){
+    throw new Error('This file does not look like an NBURST output (no SPECTRUM extension found).');
+  }
+  const { cols: specCols, rowBytes: specRowBytes } = parseColumns(specHeader);
+  const specDataStart = pos;
+  pos += Math.ceil(specRowBytes / 2880) * 2880;
+
+  const wave = getField(specCols, view, specDataStart, 'WAVE');
+  const flux = getField(specCols, view, specDataStart, 'FLUX');
+  const fit = getField(specCols, view, specDataStart, 'FIT');
+  const error = getField(specCols, view, specDataStart, 'ERROR');
+
+  // FIT_COMP holds the actual fitted curve for each kinematic component
+  // (stellar / narrow-line / broad-line / outflow), stacked back-to-back
+  // across the same wavelength grid as FLUX/FIT. COMP_LOSVDID says which
+  // component index is which (0=stellar, 1=narrow, 2=outflow, 3=broad).
+  // Component count and presence vary per file, so nothing here is hardcoded.
+  let fitComponents = {};
+  try {
+    const fitCompFlat = getField(specCols, view, specDataStart, 'FIT_COMP');
+    const compLosvdId = getField(specCols, view, specDataStart, 'COMP_LOSVDID');
+    if (Array.isArray(fitCompFlat) && wave.length > 0 && fitCompFlat.length % wave.length === 0){
+      const nComponents = fitCompFlat.length / wave.length;
+      const losvdArr = Array.isArray(compLosvdId) ? compLosvdId : [compLosvdId];
+      for (let c = 0; c < nComponents; c++){
+        const id = losvdArr[c];
+        const label = id === 1 ? 'narrow' : id === 2 ? 'outflow' : id === 3 ? 'broad' : null;
+        if (!label) continue;
+        fitComponents[label] = fitCompFlat.slice(c * wave.length, (c + 1) * wave.length);
+      }
+    }
+  } catch (e) { /* per-component fit curves are optional for display */ }
+
+  let emLines = [];
+  try {
+    const emHdrRes = readHeader(view, pos);
+    pos = emHdrRes.next;
+    const emHeader = emHdrRes.header;
+    if ((emHeader.EXTNAME || '').replace(/'/g, '') === 'EML_PARAM'){
+      const { cols: emCols, rowBytes: emRowBytes } = parseColumns(emHeader);
+      const emDataStart = pos;
+      const ids = getField(emCols, view, emDataStart, 'LINE_ID');
+      const lwave = getField(emCols, view, emDataStart, 'WAVE');
+      const lflux = getField(emCols, view, emDataStart, 'FLUX');
+      const lfluxerr = getField(emCols, view, emDataStart, 'FLUX_ERR');
+      const lew = getField(emCols, view, emDataStart, 'EW');
+      const llosvd = getField(emCols, view, emDataStart, 'LOSVD_ID'); // 1=narrow, 2=outflow, 3=broad
+      if (Array.isArray(ids)){
+        // Key by (name, component) so narrow/broad/outflow copies of the same
+        // line (e.g. H-alpha) are kept distinct rather than collapsed together.
+        const best = new Map();
+        for (let i = 0; i < ids.length; i++){
+          const nm = ids[i];
+          if (!nm) continue;
+          const fl = lflux[i], fe = lfluxerr[i];
+          if (!isFinite(fl) || fl <= 0) continue;
+          if (isFinite(fe) && fe > 0 && fl < 3 * fe) continue;
+          const losvdId = Array.isArray(llosvd) ? llosvd[i] : llosvd;
+          const component = losvdId === 1 ? 'narrow' : losvdId === 2 ? 'outflow' : losvdId === 3 ? 'broad' : null;
+          const key = nm + '|' + losvdId;
+          const existing = best.get(key);
+          if (!existing || fl > existing.flux){
+            best.set(key, { name: nm, wave: lwave[i], flux: fl, ew: lew[i], component });
+          }
+        }
+        // Keep the strongest lines overall, but always keep at least the
+        // single strongest detection from each kinematic component present,
+        // so a weak but real outflow/broad line isn't dropped by the cap.
+        const all = Array.from(best.values()).sort((a, b) => b.flux - a.flux);
+        const CAP = 24;
+        const top = all.slice(0, CAP);
+        const topKeys = new Set(top.map(l => l.name + '|' + l.component));
+        ['narrow', 'broad', 'outflow'].forEach(comp => {
+          const strongest = all.find(l => l.component === comp);
+          if (strongest && !topKeys.has(strongest.name + '|' + strongest.component)) top.push(strongest);
+        });
+        emLines = top.sort((a, b) => b.flux - a.flux);
+      }
+    }
+  } catch (e) { /* emission-line table is optional for display */ }
+
+  return {
+    name: (primary.header.NAME || '').replace(/'/g, ''),
+    age: parseFloat(primary.header.AGE),
+    met: parseFloat(primary.header.MET),
+    chi2: parseFloat(primary.header.CHI2),
+    mbh: parseFloat(primary.header.MBH),
+    mbhErr: parseFloat(primary.header.MBH_ERR),
+    snr: parseFloat(primary.header.SNRFLUX),
+    wave, flux, fit, error, emLines, fitComponents
+  };
+}
+
+/* ---------- color + plotting helpers ---------- */
+
+function wavelengthToColor(wl){
+  let r, g, b;
+  if (wl >= 380 && wl < 440){ r = -(wl - 440) / (440 - 380); g = 0; b = 1; }
+  else if (wl >= 440 && wl < 490){ r = 0; g = (wl - 440) / (490 - 440); b = 1; }
+  else if (wl >= 490 && wl < 510){ r = 0; g = 1; b = -(wl - 510) / (510 - 490); }
+  else if (wl >= 510 && wl < 580){ r = (wl - 510) / (580 - 510); g = 1; b = 0; }
+  else if (wl >= 580 && wl < 645){ r = 1; g = -(wl - 645) / (645 - 580); b = 0; }
+  else if (wl >= 645 && wl <= 750){ r = 1; g = 0; b = 0; }
+  else if (wl > 750){ r = 1; g = 0; b = 0; }
+  else { r = 0; g = 0; b = 0; }
+  let factor = 1;
+  if (wl >= 380 && wl < 420) factor = 0.3 + 0.7 * (wl - 380) / (420 - 380);
+  else if (wl >= 700 && wl <= 750) factor = 0.3 + 0.7 * (750 - wl) / (750 - 700);
+  else if (wl > 750) factor = Math.max(0.04, 0.3 * (1 - (wl - 750) / 220));
+  const gamma = 0.8;
+  const f = c => Math.round(255 * Math.pow(Math.max(0, c * factor), gamma));
+  return [f(r), f(g), f(b)];
+}
+
+function niceAxisStep(range){
+  const raw = range / 6;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  let step;
+  if (norm < 1.5) step = 1; else if (norm < 3.5) step = 2; else if (norm < 7.5) step = 5; else step = 10;
+  return step * mag;
+}
+
+function renderBandSVG(waveNm, intensities){
+  const W = 760, H = 46;
+  const n = waveNm.length;
+  const wlMin = waveNm[0], wlMax = waveNm[n - 1];
+  let rects = '';
+  const rw = W / n + 0.6;
+  for (let i = 0; i < n; i++){
+    const w = waveNm[i];
+    const [r, g, b] = wavelengthToColor(w);
+    const I = intensities[i];
+    const x = ((w - wlMin) / (wlMax - wlMin)) * W;
+    const cr = Math.round(r * I), cg = Math.round(g * I), cb = Math.round(b * I);
+    rects += `<rect x="${x.toFixed(1)}" y="0" width="${rw.toFixed(1)}" height="${H}" fill="rgb(${cr},${cg},${cb})"/>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${rects}</svg>`;
+}
+
+const COMPONENT_COLOR = {
+  narrow: '#5fb3e8',   // blue
+  broad: '#e8795f',    // orange-red
+  outflow: '#b985e0'   // purple
+};
+const COMPONENT_LABEL = { narrow: 'Narrow-line fit', broad: 'Broad-line fit', outflow: 'Outflow fit' };
+
+function renderChartSVG(waveA, flux, fit, fitComponents){
+  const W = 760, H = 230, M = 14;
+  const n = waveA.length;
+  const wlMin = waveA[0], wlMax = waveA[n - 1];
+
+  const compKeys = Object.keys(fitComponents || {}).filter(k => Array.isArray(fitComponents[k]));
+
+  const finiteFlux = flux.filter(v => isFinite(v));
+  const finiteFit = fit.filter(v => isFinite(v));
+  let allVals = finiteFlux.concat(finiteFit);
+  compKeys.forEach(k => { allVals = allVals.concat(fitComponents[k].filter(v => isFinite(v))); });
+  const vMax = Math.max(...allVals) * 1.05;
+  const vMin = Math.min(0, Math.min(...allVals));
+
+  const xOf = w => ((w - wlMin) / (wlMax - wlMin)) * W;
+  const yOf = v => H - M - ((v - vMin) / (vMax - vMin)) * (H - 2 * M);
+
+  function pathFor(arr){
+    let d = '', started = false;
+    for (let i = 0; i < n; i++){
+      const v = arr[i];
+      if (!isFinite(v)){ started = false; continue; }
+      const x = xOf(waveA[i]).toFixed(1), y = yOf(v).toFixed(1);
+      d += (started ? ' L ' : 'M ') + x + ' ' + y;
+      started = true;
+    }
+    return d;
+  }
+
+  // The actual fitted curve for each kinematic component, overlaid on the
+  // total flux/model -- not just a tick at the line centroid.
+  const componentPaths = compKeys.map(k =>
+    `<path class="line-component" d="${pathFor(fitComponents[k])}" stroke="${COMPONENT_COLOR[k]}"/>`
+  ).join('');
+
+  const step = niceAxisStep(wlMax - wlMin);
+  let ruler = '';
+  for (let w = Math.ceil(wlMin / step) * step; w <= wlMax; w += step){
+    const x = xOf(w);
+    ruler += `<text x="${x.toFixed(1)}" y="${H - 1}" text-anchor="middle">${Math.round(w)}</text>`;
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H + 16}" preserveAspectRatio="none" class="ruler">
+    <path class="line-flux" d="${pathFor(flux)}"/>
+    <path class="line-fit" d="${pathFor(fit)}"/>
+    ${componentPaths}
+    ${ruler}
+  </svg>`;
+}
+
+/* ---------- rendering ---------- */
+
+function kindLabel(bestFit){
+  if (bestFit === 'bl') return 'Broad emission lines';
+  if (bestFit === 'nl') return 'Narrow emission lines';
+  return 'Could not be classified';
+}
+
+/* ---------- spectrum view state (zoom + rest/observed frame) ----------
+   zoomMinFrac/zoomMaxFrac are normalized [0,1] positions within whichever
+   frame is currently displayed, so zoom survives toggling rest<->observed. */
+let spectrumView = { restFrame: false, zoomMinFrac: 0, zoomMaxFrac: 1 };
+let lastRenderedName = null;
+let currentParsedSpectrum = null; // the spectrum currently backing the chart, for lightweight redraws
+
+const ZOOM_FACTOR = 0.7;
+const MIN_ZOOM_WIDTH_FRAC = 0.02;
+
+/* Lightweight redraw: regenerates only the spectrum panel's markup, rather
+   than the whole source profile, so wheel-zoom and drag-pan feel immediate. */
+function updateSpectrumPanel(){
+  if (!currentRow || !currentParsedSpectrum) return;
+  const host = document.getElementById('specPanelHost');
+  if (!host) return;
+  host.innerHTML = renderSpectrumPanel(currentRow, currentParsedSpectrum, spectrumView);
+  wireSpectrumControls();
+}
+
+function setZoomWindow(anchorFrac, factor){
+  let halfWidth = (spectrumView.zoomMaxFrac - spectrumView.zoomMinFrac) / 2 * factor;
+  halfWidth = Math.max(MIN_ZOOM_WIDTH_FRAC / 2, Math.min(0.5, halfWidth));
+  let lo = anchorFrac - halfWidth, hi = anchorFrac + halfWidth;
+  if (lo < 0){ hi -= lo; lo = 0; }
+  if (hi > 1){ lo -= (hi - 1); hi = 1; }
+  spectrumView.zoomMinFrac = Math.max(0, lo);
+  spectrumView.zoomMaxFrac = Math.min(1, hi);
+}
+
+function zoomSpectrum(factor){
+  const mid = (spectrumView.zoomMinFrac + spectrumView.zoomMaxFrac) / 2;
+  setZoomWindow(mid, factor);
+  updateSpectrumPanel();
+}
+
+function resetSpectrumZoom(){
+  spectrumView.zoomMinFrac = 0;
+  spectrumView.zoomMaxFrac = 1;
+  updateSpectrumPanel();
+}
+
+function toggleRestFrame(){
+  spectrumView.restFrame = !spectrumView.restFrame;
+  updateSpectrumPanel();
+}
+
+function handleChartWheel(e){
+  e.preventDefault();
+  const wrap = e.currentTarget;
+  const rect = wrap.getBoundingClientRect();
+  const pixelFrac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  const dataMin = parseFloat(wrap.dataset.dataMin), dataMax = parseFloat(wrap.dataset.dataMax);
+  const zMin = dataMin + spectrumView.zoomMinFrac * (dataMax - dataMin);
+  const zMax = dataMin + spectrumView.zoomMaxFrac * (dataMax - dataMin);
+  const targetWave = zMin + pixelFrac * (zMax - zMin);
+  const anchorFrac = (targetWave - dataMin) / (dataMax - dataMin);
+  const factor = e.deltaY < 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR; // scroll/pinch up = zoom in
+  setZoomWindow(anchorFrac, factor);
+  updateSpectrumPanel();
+}
+
+let chartDragState = null;
+
+function handleChartMouseDown(e){
+  const wrap = e.currentTarget;
+  chartDragState = {
+    startX: e.clientX,
+    startMin: spectrumView.zoomMinFrac,
+    startMax: spectrumView.zoomMaxFrac,
+    rectWidth: wrap.getBoundingClientRect().width
+  };
+  wrap.classList.add('dragging');
+  e.preventDefault();
+}
+
+function handleChartMouseMove(e){
+  if (!chartDragState) return;
+  const dxPixels = e.clientX - chartDragState.startX;
+  const windowFrac = chartDragState.startMax - chartDragState.startMin;
+  const deltaFrac = -(dxPixels / chartDragState.rectWidth) * windowFrac; // drag right -> reveal earlier wavelengths
+  let lo = chartDragState.startMin + deltaFrac, hi = chartDragState.startMax + deltaFrac;
+  if (lo < 0){ hi -= lo; lo = 0; }
+  if (hi > 1){ lo -= (hi - 1); hi = 1; }
+  spectrumView.zoomMinFrac = lo;
+  spectrumView.zoomMaxFrac = hi;
+  updateSpectrumPanel();
+}
+
+function handleChartMouseUp(){
+  if (!chartDragState) return;
+  chartDragState = null;
+  const wrap = document.getElementById('specChartArea');
+  if (wrap) wrap.classList.remove('dragging');
+}
+
+document.addEventListener('mousemove', handleChartMouseMove);
+document.addEventListener('mouseup', handleChartMouseUp);
+
+function wireSpectrumControls(){
+  const zi = document.getElementById('specZoomIn');
+  const zo = document.getElementById('specZoomOut');
+  const zr = document.getElementById('specZoomReset');
+  const rf = document.getElementById('specRestToggle');
+  const chart = document.getElementById('specChartArea');
+  if (zi) zi.addEventListener('click', () => zoomSpectrum(ZOOM_FACTOR));
+  if (zo) zo.addEventListener('click', () => zoomSpectrum(1 / ZOOM_FACTOR));
+  if (zr) zr.addEventListener('click', resetSpectrumZoom);
+  if (rf) rf.addEventListener('click', toggleRestFrame);
+  if (chart){
+    chart.addEventListener('wheel', handleChartWheel, { passive: false });
+    chart.addEventListener('mousedown', handleChartMouseDown);
+  }
+}
+
+function renderSpectrumPanel(row, parsed, view){
+  const z = row[COL.Z];
+  const useRest = view.restFrame && isFinite(z) && z > -1;
+  const toDisplay = w => useRest ? w / (1 + z) : w;
+
+  const fullWaveDisplay = parsed.wave.map(toDisplay);
+  const n = fullWaveDisplay.length;
+  const dataMin = fullWaveDisplay[0], dataMax = fullWaveDisplay[n - 1];
+
+  const zMin = dataMin + view.zoomMinFrac * (dataMax - dataMin);
+  const zMax = dataMin + view.zoomMaxFrac * (dataMax - dataMin);
+
+  const idxs = [];
+  for (let i = 0; i < n; i++){ if (fullWaveDisplay[i] >= zMin && fullWaveDisplay[i] <= zMax) idxs.push(i); }
+  const useIdxs = idxs.length >= 2 ? idxs : fullWaveDisplay.map((_, i) => i);
+
+  const waveA = useIdxs.map(i => fullWaveDisplay[i]);
+  const flux = useIdxs.map(i => parsed.flux[i]);
+  const fit = useIdxs.map(i => parsed.fit[i]);
+  const waveNm = waveA.map(w => w / 10);
+
+  const fitComponents = {};
+  Object.keys(parsed.fitComponents || {}).forEach(k => {
+    fitComponents[k] = useIdxs.map(i => parsed.fitComponents[k][i]);
+  });
+
+  const emLines = parsed.emLines
+    .map(l => ({ ...l, wave: toDisplay(l.wave) }))
+    .filter(l => l.wave >= waveA[0] && l.wave <= waveA[waveA.length - 1]);
+
+  const finiteFlux = flux.filter(v => isFinite(v));
+  const fMax = Math.max(...finiteFlux);
+  const intensities = flux.map(v => isFinite(v) ? Math.max(0, Math.min(1, v / fMax)) : 0);
+
+  const popFacts = [];
+  if (isFinite(parsed.age)) popFacts.push(['Stellar population age', (parsed.age / 1000).toFixed(2) + ' Gyr']);
+  if (isFinite(parsed.met)) popFacts.push(['Metallicity [M/H]', parsed.met.toFixed(2)]);
+  if (isFinite(parsed.chi2)) popFacts.push(['Fit chi-squared', parsed.chi2.toFixed(3)]);
+  if (isFinite(parsed.snr)) popFacts.push(['Signal-to-noise', parsed.snr.toFixed(1)]);
+  if (isFinite(parsed.mbh) && parsed.mbh > 0) {
+    popFacts.push(['Black hole mass (virial est.)', (parsed.mbh / 1e6).toFixed(2) + ' x10\u2076 M\u2609']);
+  }
+
+  const legendBits = [`<span><span class="legend-dot" style="background:var(--white-line)"></span>Observed flux</span>`,
+                       `<span><span class="legend-dot" style="background:var(--gold)"></span>Total model</span>`]
+    .concat(Object.keys(fitComponents).map(k =>
+      `<span><span class="legend-dot" style="background:${COMPONENT_COLOR[k]}"></span>${COMPONENT_LABEL[k]}</span>`
+    ));
+
+  const frameLabel = useRest ? 'rest frame' : 'observed frame';
+  const isZoomed = view.zoomMinFrac > 0 || view.zoomMaxFrac < 1;
+  const restDisabled = !isFinite(z) || z <= -1;
+
+  return `
+    <div class="spec-controls">
+      <button type="button" id="specRestToggle" class="${useRest ? 'active' : ''}" ${restDisabled ? 'disabled title="No valid redshift for this source"' : ''}>
+        ${useRest ? 'Rest frame' : 'Observed frame'}
+      </button>
+      <button type="button" id="specZoomIn">Zoom in</button>
+      <button type="button" id="specZoomOut">Zoom out</button>
+      ${isZoomed ? `<button type="button" id="specZoomReset">Reset zoom</button>` : ''}
+      <span class="spec-range">${Math.round(waveA[0])}&ndash;${Math.round(waveA[waveA.length - 1])} \u00c5 &middot; scroll to zoom, drag to pan</span>
+    </div>
+    <div class="scope">
+      <div class="scope-label"><span>Flux vs. wavelength (\u00c5, ${frameLabel})</span><span>${legendBits.join(' &nbsp; ')}</span></div>
+      <div class="spec-chart-area" id="specChartArea" data-data-min="${dataMin}" data-data-max="${dataMax}">
+        <div class="band-wrap">${renderBandSVG(waveNm, intensities)}</div>
+        ${renderChartSVG(waveA, flux, fit, fitComponents)}
+      </div>
+    </div>
+    ${popFacts.length ? `<dl class="facts pop-facts">${popFacts.map(([k, v]) => `<div class="fact"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>` : ''}
+    ${emLines.length ? `<p class="count-note">Detected emission lines (${frameLabel}): ${emLines.map(l => {
+      const tag = l.component === 'broad' ? ' [broad]' : l.component === 'outflow' ? ' [outflow]' : l.component === 'narrow' ? ' [narrow]' : '';
+      return l.name + tag + ' ' + Math.round(l.wave) + '\u00c5';
+    }).join(', ')}.</p>` : ''}
+  `;
+}
+
+let currentRow = null;
+
+function render(row){
+  currentRow = row;
+  const host = document.getElementById('resultHost');
+  const name = row[COL.NAME], ra = row[COL.RA], dec = row[COL.DEC], z = row[COL.Z];
+  if (name !== lastRenderedName){
+    spectrumView = { restFrame: false, zoomMinFrac: 0, zoomMaxFrac: 1 };
+    lastRenderedName = name;
+  }
+  const continuum = row[COL.CONTINUUM], bestFit = row[COL.BEST_FIT], outflow = row[COL.OUTFLOW];
+  const nburstBasename = row[COL.NBURST];
+
+  const facts = [
+    ['Coordinates', ra.toFixed(4) + '\u00b0, ' + dec.toFixed(4) + '\u00b0'],
+    ['Redshift', z.toFixed(5)],
+    ['Fit result', kindLabel(bestFit)]
+  ];
+  if (outflow) facts.push(['Outflow component', 'Detected']);
+  if (isFinite(row[COL.STELLAR_SIG])) facts.push(['Stellar velocity dispersion', Math.round(row[COL.STELLAR_SIG]) + ' km/s']);
+  if (isFinite(row[COL.NL_SIG])) facts.push(['Narrow-line sigma', Math.round(row[COL.NL_SIG]) + ' km/s']);
+  if (isFinite(row[COL.BL_SIG])) facts.push(['Broad-line sigma', Math.round(row[COL.BL_SIG]) + ' km/s']);
+  if (isFinite(row[COL.OUT_SIG])) facts.push(['Outflow sigma', Math.round(row[COL.OUT_SIG]) + ' km/s']);
+  const mw = MULTIWAVE.get(name);
+  const iragn = mw && mw.ir_agn, optagn = mw && mw.optical_agn, xagn = mw && mw.xray_agn;
+    if (iragn || optagn || xagn){
+    const agnFlags = [];
+    if (iragn) agnFlags.push('IR AGN');
+    if (optagn) agnFlags.push('Optical AGN');
+    if (xagn) agnFlags.push('X-ray AGN');
+    facts.push(['AGN flags', agnFlags.join(', ')]);
+    }
+
+  let body;
+if (!continuum || !nburstBasename){
+  currentParsedSpectrum = null;
+  body = `<div class="state-msg">The continuum fit failed for this source, so there's no NBURST spectrum to show here.</div>`;
+} else if (loadedSpectra.has(nburstBasename)){
+  currentParsedSpectrum = loadedSpectra.get(nburstBasename);
+  body = renderSpectrumPanel(row, currentParsedSpectrum, spectrumView);
+} else {
+  currentParsedSpectrum = null;
+  autoLoadSpectrum(row);   // kick off the fetch; render() will be called again once it resolves
+  body = `<div class="state-msg">Loading spectrum from <code>${nburstBasename}</code>&hellip;</div>`;
+}
+  
+
+  host.innerHTML = `
+    <div class="panel enter">
+      <div class="obj-kind">2CXO X-ray source &middot; SDSS/DESI counterpart</div>
+      <h2 class="obj-name">${name}</h2>
+      <dl class="facts">${facts.map(([k, v]) => `<div class="fact"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      <div id="specPanelHost">${body}</div>
+      ${renderMultiwavePanel(name)}
+    </div>
+  `;
+
+  wireUploadHandlers(row);
+  wireSpectrumControls();
+}
+
+function wireUploadHandlers(row){
+  const dz = document.getElementById('dropzone');
+  const fi = document.getElementById('fileInput');
+  if (dz && fi){
+    dz.addEventListener('click', () => fi.click());
+    dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fi.click(); });
+    ['dragover', 'dragenter'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
+    ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+    dz.addEventListener('drop', e => handleFiles(e.dataTransfer.files, row));
+    fi.addEventListener('change', e => handleFiles(e.target.files, row));
+  }
+  const more = document.getElementById('uploadMore');
+  const fig = document.getElementById('fileInputGlobal');
+  if (more && fig){
+    more.addEventListener('click', () => fig.click());
+    fig.addEventListener('change', e => handleFiles(e.target.files, row));
+  }
+}
+
+function handleFiles(fileList, row){
+  const files = Array.from(fileList || []);
+  let pending = files.length;
+  if (!pending) return;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = parseNburstFITS(reader.result);
+        loadedSpectra.set(file.name, parsed);
+      } catch (err) {
+        console.error('Could not parse', file.name, err);
+      }
+      pending -= 1;
+      if (pending === 0) render(row);
+    };
+    reader.onerror = () => { pending -= 1; if (pending === 0) render(row); };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function renderNotFound(query){
+  document.getElementById('resultHost').innerHTML = `
+    <div class="state-msg"><b>"${query}"</b> isn't in the catalog. Pick a suggestion from the search box, or try one of the chips above.</div>
+  `;
+}
+
+/* ---------- search ---------- */
+
+function findExact(query){
+  const q = query.trim().toLowerCase();
+  return CATALOG.find(r => r[COL.NAME].toLowerCase() === q) || null;
+}
+
+function searchMatches(query){
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return CATALOG.filter(r => r[COL.NAME].toLowerCase().includes(q)).slice(0, 12);
+}
+
+function initSearch(){
+  const input = document.getElementById('searchInput');
+  const sugg = document.getElementById('suggestions');
+
+  function showSuggestions(matches){
+    if (!matches.length){ sugg.classList.remove('open'); sugg.innerHTML = ''; return; }
+    sugg.innerHTML = matches.map(r => {
+      const has = r[COL.CONTINUUM] && r[COL.NBURST];
+      return `<button type="button" class="suggest-item" data-name="${r[COL.NAME]}">
+        <span>${r[COL.NAME]}</span><span class="tag">${has ? kindLabel(r[COL.BEST_FIT]) : 'fit failed'}</span>
+      </button>`;
+    }).join('');
+    sugg.classList.add('open');
+    sugg.querySelectorAll('.suggest-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        input.value = btn.dataset.name;
+        sugg.classList.remove('open');
+        render(findExact(btn.dataset.name));
+      });
+    });
+  }
+
+  input.addEventListener('input', () => showSuggestions(searchMatches(input.value)));
+  input.addEventListener('focus', () => { if (input.value) showSuggestions(searchMatches(input.value)); });
+  document.addEventListener('click', e => { if (!e.target.closest('.search-row')) sugg.classList.remove('open'); });
+
+  document.getElementById('searchForm').addEventListener('submit', e => {
+    e.preventDefault();
+    sugg.classList.remove('open');
+    const found = findExact(input.value) || searchMatches(input.value)[0];
+    if (found) render(found); else renderNotFound(input.value);
+  });
+}
+
+/* ---------- search by coordinates ---------- */
+
+function angularSepArcsec(ra1, dec1, ra2, dec2){
+  const toRad = Math.PI / 180;
+  const ra1r = ra1 * toRad, dec1r = dec1 * toRad;
+  const ra2r = ra2 * toRad, dec2r = dec2 * toRad;
+  let cosSep = Math.sin(dec1r) * Math.sin(dec2r) + Math.cos(dec1r) * Math.cos(dec2r) * Math.cos(ra1r - ra2r);
+  cosSep = Math.min(1, Math.max(-1, cosSep));
+  return Math.acos(cosSep) * 180 / Math.PI * 3600; // degrees -> arcsec
+}
+
+function searchByCoords(raStr, decStr, radiusStr){
+  const ra = parseFloat(raStr), dec = parseFloat(decStr), radius = parseFloat(radiusStr);
+  if (!isFinite(ra) || !isFinite(dec) || !isFinite(radius)) return null;
+  return CATALOG
+    .map(r => ({ row: r, sep: angularSepArcsec(ra, dec, r[COL.RA], r[COL.DEC]) }))
+    .filter(m => m.sep <= radius)
+    .sort((a, b) => a.sep - b.sep);
+}
+
+function initCoordSearch(){
+  const form = document.getElementById('coordForm');
+  const resultsEl = document.getElementById('coordResults');
+
+  function selectRow(name){
+    const row = findExact(name);
+    if (!row) return;
+    render(row);
+    document.getElementById('searchInput').value = row[COL.NAME];
+    resultsEl.innerHTML = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const raStr = document.getElementById('raInput').value;
+    const decStr = document.getElementById('decInput').value;
+    const radiusStr = document.getElementById('radiusInput').value || '5';
+    const matches = searchByCoords(raStr, decStr, radiusStr);
+
+    if (matches === null){
+      resultsEl.innerHTML = `<div class="state-msg">Enter numeric RA, Dec (decimal degrees) and a radius (arcsec).</div>`;
+      return;
+    }
+    if (!matches.length){
+      resultsEl.innerHTML = `<div class="state-msg">No sources found within ${radiusStr}\u2033 of (${raStr}, ${decStr}).</div>`;
+      return;
+    }
+    resultsEl.innerHTML = matches.slice(0, 20).map(m => {
+      const r = m.row;
+      const has = r[COL.CONTINUUM] && r[COL.NBURST];
+      return `<button type="button" class="coord-result-item" data-name="${r[COL.NAME]}">
+        <span>${r[COL.NAME]} &nbsp;<span class="tag">${m.sep.toFixed(2)}\u2033 away</span></span>
+        <span class="tag">${has ? kindLabel(r[COL.BEST_FIT]) : 'fit failed'}</span>
+      </button>`;
+    }).join('');
+    resultsEl.querySelectorAll('.coord-result-item').forEach(el => {
+      el.addEventListener('click', () => selectRow(el.dataset.name));
+    });
+  });
+}
+
+
+/* ---------- all-sources table ---------- */
+
+const TABLE_CRITERIA = [
+  { id: 'spectrum',   label: 'Has spectrum', test: (r, mw) => !!(r[COL.CONTINUUM] && r[COL.NBURST]) },
+  { id: 'broadlines', label: 'Broad lines',   test: (r, mw) => r[COL.BEST_FIT] === 'bl' },
+  { id: 'outflow',    label: 'Outflow',       test: (r, mw) => !!r[COL.OUTFLOW] },
+  { id: 'xrayagn',    label: 'X-ray AGN',     test: (r, mw) => !!(mw && mw.xray_agn) },
+  { id: 'opticalagn', label: 'Optical AGN',   test: (r, mw) => !!(mw && mw.optical_agn) },
+  { id: 'iragn',      label: 'IR AGN',        test: (r, mw) => !!(mw && mw.ir_agn) }
+];
+
+function getActiveCriteria(){
+  return TABLE_CRITERIA.filter(c => {
+    const cb = document.getElementById('crit-' + c.id);
+    return cb && cb.checked;
+  });
+}
+
+function renderTableRows(rows){
+  return rows.map(r => {
+    const mw = MULTIWAVE.get(r[COL.NAME]);
+    const hasSpec = TABLE_CRITERIA[0].test(r, mw);
+    const broadLines = TABLE_CRITERIA[1].test(r, mw);
+    const outflow = TABLE_CRITERIA[2].test(r, mw);
+    const xFlag = TABLE_CRITERIA[3].test(r, mw);
+    const oFlag = TABLE_CRITERIA[4].test(r, mw);
+    const iFlag = TABLE_CRITERIA[5].test(r, mw);
+    return `<tr data-name="${r[COL.NAME]}">
+      <td>${r[COL.NAME]}</td>
+      <td>${r[COL.RA].toFixed(4)}</td>
+      <td>${r[COL.DEC].toFixed(4)}</td>
+      <td>${r[COL.Z].toFixed(5)}</td>
+      <td class="${hasSpec ? 'spec-yes' : 'spec-no'}">${hasSpec ? 'Yes' : 'No'}</td>
+      <td class="${broadLines ? 'spec-yes' : 'spec-no'}">${broadLines ? 'Yes' : 'No'}</td>
+      <td class="${outflow ? 'spec-yes' : 'spec-no'}">${outflow ? 'Yes' : 'No'}</td>
+      <td class="${xFlag ? 'spec-yes' : 'spec-no'}">${xFlag ? 'Yes' : 'No'}</td>
+      <td class="${oFlag ? 'spec-yes' : 'spec-no'}">${oFlag ? 'Yes' : 'No'}</td>
+      <td class="${iFlag ? 'spec-yes' : 'spec-no'}">${iFlag ? 'Yes' : 'No'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function refreshTableBody(){
+  const host = document.getElementById('tableHost');
+  const tbody = host && host.querySelector('tbody');
+  if (!tbody) return;
+  const filterInput = document.getElementById('tableFilter');
+  const q = filterInput ? filterInput.value.trim().toLowerCase() : '';
+  const active = getActiveCriteria();
+
+  let filtered = q ? CATALOG.filter(r => r[COL.NAME].toLowerCase().includes(q)) : CATALOG;
+  if (active.length){
+    filtered = filtered.filter(r => {
+      const mw = MULTIWAVE.get(r[COL.NAME]);
+      return active.every(c => c.test(r, mw));
+    });
+  }
+
+  tbody.innerHTML = renderTableRows(filtered);
+  const countEl = document.getElementById('tableCount');
+  if (countEl){
+    countEl.textContent = (q || active.length)
+      ? (filtered.length + ' of ' + CATALOG.length + ' sources')
+      : (CATALOG.length + ' sources');
+  }
+  wireTableRowClicks(host);
+}
+
+function wireTableRowClicks(host){
+  host.querySelectorAll('tbody tr').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const row = findExact(tr.dataset.name);
+      if (!row) return;
+      render(row);
+      document.getElementById('tableHost').style.display = 'none';
+      document.getElementById('searchInput').value = row[COL.NAME];
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+}
+
+function initTable(){
+  const host = document.getElementById('tableHost');
+  host.innerHTML = `
+    <div class="table-filter">
+      <input type="text" id="tableFilter" placeholder="Filter by name&hellip;" autocomplete="off">
+      <span class="count-note" id="tableCount"></span>
+    </div>
+    <div class="table-criteria">
+      ${TABLE_CRITERIA.map(c => `
+        <label><input type="checkbox" id="crit-${c.id}">${c.label}</label>
+      `).join('')}
+    </div>
+    <div class="table-wrap">
+      <table class="src-table">
+        <thead><tr><th>Name</th><th>RA (deg)</th><th>Dec (deg)</th><th>Redshift</th><th>Spectrum</th><th>Broad Lines</th><th>Outflow</th><th>X-ray AGN</th><th>Optical AGN</th><th>IR AGN</th></tr></thead>
+        <tbody>${renderTableRows(CATALOG)}</tbody>
+      </table>
+    </div>
+  `;
+  const countEl = document.getElementById('tableCount');
+  countEl.textContent = CATALOG.length + ' sources';
+  wireTableRowClicks(host);
+
+  document.getElementById('tableFilter').addEventListener('input', refreshTableBody);
+  TABLE_CRITERIA.forEach(c => {
+    document.getElementById('crit-' + c.id).addEventListener('change', refreshTableBody);
+  });
+
+  document.getElementById('toggleTable').addEventListener('click', () => {
+    host.style.display = host.style.display === 'none' ? '' : 'none';
+  });
+}
+
+loadCatalog();
+loadMultiwave();
+</script>
+</body>
+</html>
